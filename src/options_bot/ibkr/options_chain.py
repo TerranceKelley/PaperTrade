@@ -84,10 +84,10 @@ def get_option_contract_with_greeks(
         # Extract Greeks from ticker
         delta = None
         has_greeks = False
-        if ticker.modelGreeks:
+        if hasattr(ticker, 'modelGreeks') and ticker.modelGreeks:
             delta = ticker.modelGreeks.delta
             has_greeks = True
-        elif ticker.optionGreeks:
+        elif hasattr(ticker, 'optionGreeks') and ticker.optionGreeks:
             delta = ticker.optionGreeks.delta
             has_greeks = True
 

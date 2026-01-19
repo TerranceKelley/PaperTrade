@@ -110,38 +110,59 @@ def run_doctor():
             if strikes:
                 # Get current SPY price to find near-the-money strike
                 spy_price = spy_quote.get("last") or spy_quote.get("bid") or spy_quote.get("ask")
-                if spy_price:
+                import math
+                
+                # Check if price is valid (not NaN)
+                if spy_price and not (isinstance(spy_price, float) and math.isnan(spy_price)):
                     # Find closest strike
                     closest_strike = min(strikes, key=lambda x: abs(x - spy_price))
-                    option_quote = get_option_quote("SPY", exp, closest_strike, "P")
-                    if option_quote:
-                        print(f"✓ Option Quote (SPY {exp} {closest_strike} Put):")
-                        print(f"  Bid: {option_quote.get('bid')}")
-                        print(f"  Ask: {option_quote.get('ask')}")
-                        has_bid_ask = option_quote.get("has_bid_ask", False)
-                        if has_bid_ask:
-                            print("  ✓ Has bid/ask")
-                        else:
-                            print("  ⚠ Missing bid/ask (may indicate delayed data)")
-
-                        # Check Greeks
-                        has_greeks = option_quote.get("has_greeks", False)
-                        delta = option_quote.get("delta")
-                        results["greeks_available"] = has_greeks
-                        if has_greeks and delta is not None:
-                            print(f"  ✓ Greeks available (Delta: {delta:.4f})")
-                        else:
-                            print("  ⚠ Greeks NOT available from market data")
-                            print("    This will affect delta-based selection")
-                            if config.require_greeks:
-                                print("    ⚠ REQUIRE_GREEKS=true - candidates will be rejected")
-                            else:
-                                print("    ℹ REQUIRE_GREEKS=false - will use OTM fallback")
-                    else:
-                        print("✗ Failed to get option quote")
-                        results["errors"].append("Failed to get option quote")
                 else:
-                    print("⚠ Cannot determine SPY price for option test")
+                    # Use a reasonable default strike if price unavailable
+                    # SPY is typically around 400-500, so use middle of strikes
+                    if strikes:
+                        closest_strike = strikes[len(strikes) // 2]  # Use middle strike
+                    else:
+                        print("⚠ No strikes available for testing")
+                        closest_strike = None
+                
+                if closest_strike is None:
+                    print("⚠ Cannot test option quote (no valid strike)")
+                    option_quote = None
+                else:
+                    try:
+                        option_quote = get_option_quote("SPY", exp, closest_strike, "P")
+                    except Exception as e:
+                        logger.warning(f"Failed to get option quote: {e}")
+                        print(f"⚠ Failed to get option quote for testing (strike: {closest_strike})")
+                        print(f"  Error: {e}")
+                        option_quote = None
+                
+                if option_quote:
+                    print(f"✓ Option Quote (SPY {exp} {closest_strike} Put):")
+                    print(f"  Bid: {option_quote.get('bid')}")
+                    print(f"  Ask: {option_quote.get('ask')}")
+                    has_bid_ask = option_quote.get("has_bid_ask", False)
+                    if has_bid_ask:
+                        print("  ✓ Has bid/ask")
+                    else:
+                        print("  ⚠ Missing bid/ask (may indicate delayed data)")
+
+                    # Check Greeks
+                    has_greeks = option_quote.get("has_greeks", False)
+                    delta = option_quote.get("delta")
+                    results["greeks_available"] = has_greeks
+                    if has_greeks and delta is not None:
+                        print(f"  ✓ Greeks available (Delta: {delta:.4f})")
+                    else:
+                        print("  ⚠ Greeks NOT available from market data")
+                        print("    This will affect delta-based selection")
+                        if config.require_greeks:
+                            print("    ⚠ REQUIRE_GREEKS=true - candidates will be rejected")
+                        else:
+                            print("    ℹ REQUIRE_GREEKS=false - will use OTM fallback")
+                else:
+                    print("✗ Failed to get option quote")
+                    results["errors"].append("Failed to get option quote")
             else:
                 print("⚠ No strikes found for first expiration")
         else:
