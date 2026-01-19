@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  ib-gateway:
+    image: ghcr.io/gznszn/ib-gateway:latest
+    container_name: ib-gateway
+    ports:
+      - "${IB_PORT:-4002}:4002"
+    volumes:
+      - ib-gateway-data:/root/Jts
+    environment:
+      - TWS_USERID=${TWS_USERID:-}
+      - TWS_PASSWORD=${TWS_PASSWORD:-}
+      - TRADING_MODE=${TRADING_MODE:-paper}
+    restart: unless-stopped
+    networks:
+      - ib-network
+
+volumes:
+  ib-gateway-data:
+    driver: local
+
+networks:
+  ib-network:
+    driver: bridge
