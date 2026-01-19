@@ -180,5 +180,9 @@ def _print_summary(results: Dict):
         print("\n✓ All critical checks passed!")
         if not results["greeks_available"]:
             print("⚠ Warning: Greeks not available - consider checking market data subscriptions")
+        if config.require_greeks and not results["greeks_available"]:
+            results["errors"].append("Greeks required but not available (REQUIRE_GREEKS=true)")
+            print("\n✗ Doctor failed: REQUIRE_GREEKS=true but Greeks are not available.")
+            sys.exit(1)
     else:
         print("\n✗ Some checks failed - please review errors above")
